@@ -81,11 +81,15 @@ return [
 
 ## 🔗 Usage
 
-### GitHub Webhook
-Set webhook URL: `https://yoursite.com/_deploy/webhook.php?token=YOUR_TOKEN`
+### GitHub Webhook Setup
+1. Go to your repository **Settings → Webhooks → Add webhook**
+2. Set **Payload URL**: `https://yoursite.com/_deploy/webhook.php`
+3. Set **Content type**: `application/x-www-form-urlencoded` (tested) or `application/json`
+4. Set **Secret**: Use the same value as `deploy_token` in your config
+5. Select **Just the push event**
+6. Click **Add webhook**
 
-### Manual Deployment
-Visit: `https://yoursite.com/_deploy/webhook.php?token=YOUR_TOKEN`
+> **Note**: Manual deployment is not currently available for security reasons. Deployment only works via authenticated GitHub webhooks.
 
 ## 🛠️ Tools
 

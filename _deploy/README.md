@@ -22,11 +22,17 @@ _deploy/
 4. **Generate SSH keys** using `tools/ssh-keygen.php`
 5. **Add public key** to your GitHub repository
 
-## 🔗 Webhook URL
+## 🔗 GitHub Webhook Setup
 
-```
-https://yoursite.com/_deploy/webhook.php?token=YOUR_TOKEN
-```
+**Webhook URL**: `https://yoursite.com/_deploy/webhook.php`
+
+Configure in GitHub:
+1. Repository **Settings → Webhooks → Add webhook**
+2. **Content type**: `application/x-www-form-urlencoded`
+3. **Secret**: Set to match your `deploy_token` in config
+4. **Events**: Just the push event
+
+> **Note**: Manual URL access is disabled for security. Only GitHub webhooks with proper signature validation are supported.
 
 ## 🛠️ Tools
 
