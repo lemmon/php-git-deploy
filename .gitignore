@@ -1,0 +1,41 @@
+# Deployment system files to ignore
+_deploy/keys/
+_deploy/logs/
+_deploy/composer.phar
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Log files
+*.log
+
+# SSH keys (security)
+*_key
+*.pem
+*.pub
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.backup
+*.bak
+backup_*
+
+# Test files
+test_*
+debug_*
