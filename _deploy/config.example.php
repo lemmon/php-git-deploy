@@ -10,7 +10,7 @@
 
 return [
     'repository' => [
-        'url' => 'git@github.com:lemmon/php-git-deploy.git',
+        'url' => 'git@github.com:username/your-website.git',
         'branch' => 'main',
     ],
 

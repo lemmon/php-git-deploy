@@ -84,12 +84,14 @@ $targetDir = $config['deployment']['target_directory'] ?? './deployment';
 $sshKeyPath = $config['ssh']['key_path'] ?? '';
 
 if (empty($repoUrl)) {
+    http_response_code(500);
     logMessage("ERROR: Repository URL not configured");
     exit(1);
 }
 
 $secret = $config['security']['deploy_token'] ?? '';
 if (empty($secret)) {
+    http_response_code(500);
     logMessage("ERROR: Deploy token not configured");
     exit(1);
 }
@@ -163,6 +165,7 @@ if (!empty($sshKeyPath)) {
     }
 
     if (!file_exists($sshKeyPath)) {
+        http_response_code(500);
         logMessage("ERROR: SSH key not found: {$sshKeyPath}");
         exit(1);
     }
@@ -174,23 +177,63 @@ if (!empty($sshKeyPath)) {
 $isInitialClone = !is_dir($targetDir) || !is_dir($targetDir . '/.git');
 
 if ($isInitialClone) {
-    logMessage("Performing initial clone...");
+    logMessage("Performing initial setup...");
 
-    $gitCommand = "git clone -b {$branch}";
+    // Check if directory is empty (except for our scripts)
+    $files = glob($targetDir . '/*');
+    $isEmpty = empty($files);
 
-    if (!empty($sshKeyPath)) {
-        $sshCommand = "ssh -i {$sshKeyPath} -o StrictHostKeyChecking=no";
-        $gitCommand = "GIT_SSH_COMMAND='{$sshCommand}' {$gitCommand}";
+    if ($isEmpty) {
+        // Directory is empty, use git clone
+        logMessage("Directory is empty, using git clone");
+
+        $gitCommand = "git clone -b {$branch}";
+
+        if (!empty($sshKeyPath)) {
+            $sshCommand = "ssh -i {$sshKeyPath} -o StrictHostKeyChecking=no";
+            $gitCommand = "GIT_SSH_COMMAND='{$sshCommand}' {$gitCommand}";
+        }
+
+        $gitCommand .= " {$repoUrl} {$targetDir}";
+
+        if (!executeCommand($gitCommand)) {
+            http_response_code(500);
+            logMessage("ERROR: Git clone failed");
+            exit(1);
+        }
+    } else {
+        // Directory is not empty, use git init + remote + pull
+        logMessage("Directory is not empty, using git init + remote + pull");
+
+        // Initialize git repository
+        if (!executeCommand("git init", $targetDir)) {
+            http_response_code(500);
+            logMessage("ERROR: Git init failed");
+            exit(1);
+        }
+
+        // Add remote
+        if (!executeCommand("git remote add origin {$repoUrl}", $targetDir)) {
+            http_response_code(500);
+            logMessage("ERROR: Git remote add failed");
+            exit(1);
+        }
+
+        // Pull with SSH key if configured
+        $pullCommand = "git pull origin {$branch}";
+        if (!empty($sshKeyPath)) {
+            $sshCommand = "ssh -i {$sshKeyPath} -o StrictHostKeyChecking=no";
+            $pullCommand = "GIT_SSH_COMMAND='{$sshCommand}' {$pullCommand}";
+        }
+
+        if (!executeCommand($pullCommand, $targetDir)) {
+            http_response_code(500);
+            logMessage("ERROR: Initial git pull failed");
+            exit(1);
+        }
     }
 
-    $gitCommand .= " {$repoUrl} {$targetDir}";
-
-    if (!executeCommand($gitCommand)) {
-        logMessage("ERROR: Git clone failed");
-        exit(1);
-    }
-
-    logMessage("Initial clone completed");
+    logMessage("Initial setup completed");
 } else {
     logMessage("Performing incremental update...");
 
@@ -202,6 +245,7 @@ if ($isInitialClone) {
     }
 
     if (!executeCommand($gitCommand, $targetDir)) {
+        http_response_code(500);
         logMessage("ERROR: Git pull failed");
         exit(1);
     }
