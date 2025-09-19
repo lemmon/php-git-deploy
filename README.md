@@ -89,7 +89,16 @@ return [
 5. Select **Just the push event**
 6. Click **Add webhook**
 
-> **Note**: Manual deployment is not currently available for security reasons. Deployment only works via authenticated GitHub webhooks.
+### Manual Deployment (via URL)
+
+For manual deployments or integration with systems that don't support GitHub's webhooks, you can trigger a deployment by visiting a special URL. This method is less secure than the default webhook validation and must be explicitly enabled.
+
+1.  In `_deploy/config.php`, set `allow_token_deployment` to `true`.
+2.  Make sure you have set a strong, secret `deploy_token`.
+3.  Trigger a deployment by visiting:
+    `https://yoursite.com/_deploy/webhook.php?token=your-secure-token-here`
+
+> **Security Warning**: Anyone with this URL can trigger a deployment. Use a long, random token and only enable this feature if you understand the risks.
 
 ## 🛠️ Tools
 

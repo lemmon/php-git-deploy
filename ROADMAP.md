@@ -6,6 +6,7 @@ Future development ideas and enhancements for PHP Git Deploy.
 
 The core system is complete and production-ready with:
 - ✅ GitHub webhook support
+- ✅ Manual deployment via URL token (opt-in)
 - ✅ SSH key authentication
 - ✅ Incremental updates
 - ✅ Configurable post-deploy commands

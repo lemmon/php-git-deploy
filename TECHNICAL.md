@@ -101,7 +101,8 @@ webdeploy/
         'key_path' => 'string', // Path to SSH private key (empty = disabled)
     ],
     'security' => [
-        'deploy_token' => 'string', // Webhook secret token
+        'deploy_token' => 'string',      // Webhook secret or manual deployment token
+        'allow_token_deployment' => 'bool', // Opt-in for manual deployment (default: false)
     ],
     'logging' => [
         'log_file' => 'string', // Log file path (empty = disabled)
@@ -203,3 +204,4 @@ webdeploy/
 - **Tool ecosystem** - modular utility scripts in `tools/` directory
 
 This documentation provides comprehensive technical details for understanding, maintaining, and extending the PHP Git Deploy system.
+tion provides comprehensive technical details for understanding, maintaining, and extending the PHP Git Deploy system.

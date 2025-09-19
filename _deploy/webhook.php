@@ -96,52 +96,78 @@ if (empty($secret)) {
     exit(1);
 }
 
-// Check GitHub event type
-$githubEvent = $_SERVER['HTTP_X_GITHUB_EVENT'] ?? '';
-
-if (empty($githubEvent)) {
-    http_response_code(400);
-    logMessage("ERROR: Missing GitHub event header");
+// Security check: Ensure the default token has been changed
+if ($secret === 'your-secret-token-here') {
+    http_response_code(500);
+    logMessage("SECURITY ERROR: You are using the default deploy token. Please change it in your config.php file.");
     exit(1);
 }
 
-logMessage("GitHub event: {$githubEvent}");
+// Handle different authentication methods
+$allowTokenDeployment = $config['security']['allow_token_deployment'] ?? false;
+$tokenFromUrl = $_GET['token'] ?? '';
 
-// Handle different event types
-if ($githubEvent === 'ping') {
-    // Ping event - no signature validation needed
-    logMessage("Ping event received - webhook is working!");
-    http_response_code(200);
-    exit(0);
-} elseif ($githubEvent !== 'push') {
-    // Unsupported event type
-    http_response_code(200); // GitHub expects 200 for unsupported events
-    logMessage("Unsupported event type: {$githubEvent}");
-    exit(0);
+if ($allowTokenDeployment && !empty($tokenFromUrl)) {
+    // Token-based deployment
+    logMessage("Attempting deployment with URL token");
+
+    if (!hash_equals($secret, $tokenFromUrl)) {
+        http_response_code(403);
+        logMessage("ERROR: Invalid deployment token");
+        exit(1);
+    }
+
+    logMessage("URL token validated successfully");
+} else {
+    // GitHub webhook signature validation
+    $githubEvent = $_SERVER['HTTP_X_GITHUB_EVENT'] ?? '';
+
+    if (empty($githubEvent)) {
+        http_response_code(400);
+        logMessage("ERROR: Missing GitHub event header");
+        exit(1);
+    }
+
+    logMessage("GitHub event: {$githubEvent}");
+
+    // Handle different event types
+    if ($githubEvent === 'ping') {
+        // Ping event - no signature validation needed
+        logMessage("Ping event received - webhook is working!");
+        http_response_code(200);
+        exit(0);
+    } elseif ($githubEvent !== 'push') {
+        // Unsupported event type
+        http_response_code(200); // GitHub expects 200 for unsupported events
+        logMessage("Unsupported event type: {$githubEvent}");
+        exit(0);
+    }
+
+    // Push event - validate signature
+    $payload = file_get_contents("php://input");
+    $signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
+
+    if (empty($signature)) {
+        http_response_code(400);
+        logMessage("ERROR: Missing signature for push event");
+        exit(1);
+    }
+
+    // Compute HMAC SHA256 hash
+    $hash = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+
+    // Securely compare signatures
+    if (!hash_equals($hash, $signature)) {
+        http_response_code(403);
+        logMessage("ERROR: Invalid signature");
+        exit(1);
+    }
+
+    logMessage("Push event signature validated successfully");
 }
 
-// Push event - validate signature
-$payload = file_get_contents("php://input");
-$signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
-
-if (empty($signature)) {
-    http_response_code(400);
-    logMessage("ERROR: Missing signature for push event");
-    exit(1);
-}
-
-// Compute HMAC SHA256 hash
-$hash = 'sha256=' . hash_hmac('sha256', $payload, $secret);
-
-// Securely compare signatures
-if (!hash_equals($hash, $signature)) {
-    http_response_code(403);
-    logMessage("ERROR: Invalid signature");
-    exit(1);
-}
-
-// Push event with valid signature - proceed with deployment
-logMessage("Push event signature validated successfully");
+// If we reach here, authentication was successful
+logMessage("Authentication successful, proceeding with deployment...");
 
 // Convert relative paths to absolute
 $scriptDir = __DIR__;

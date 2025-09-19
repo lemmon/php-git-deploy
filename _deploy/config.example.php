@@ -43,9 +43,11 @@ return [
         // Secret token for webhook authentication
         // For GitHub webhooks: Set this as your webhook secret in GitHub settings
         // For manual triggers: Use this token in URL (?token=your-secret-token)
-        // ^ Currently not implemented. Perhaps find something more secure?
-        // Change this to something secure!
         'deploy_token' => 'your-secret-token-here',
+
+        // Allow manual deployment via token in URL (?token=...)
+        // This is less secure than GitHub's HMAC signature validation
+        'allow_token_deployment' => false,
     ],
 
     'logging' => [
