@@ -278,6 +278,8 @@ header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
     $phpBinaryAvailable = testPHPBinary();
     $gitAvailable = testCommand('git', 'Git');
     $composerAvailable = testCommand('composer', 'Composer');
+    $nodeAvailable = testCommand('node', 'Node.js');
+    $npmAvailable = testCommand('npm', 'npm');
 
     testPermissions();
 
@@ -295,6 +297,14 @@ header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 
         if (!$phpBinaryAvailable) {
             echo "<p><strong>Note:</strong> No PHP CLI binary found - you won't be able to run PHP-based post-deployment commands. Use <code>tools/find-php.php</code> for detailed PHP binary detection.</p>";
+        }
+
+        if (!$nodeAvailable) {
+            echo "<p><strong>Note:</strong> Node.js is not available - you won't be able to run Node.js-based post-deployment commands.</p>";
+        }
+
+        if (!$npmAvailable) {
+            echo "<p><strong>Note:</strong> npm is not available - you won't be able to install Node.js dependencies or run npm scripts.</p>";
         }
     } else {
         echo "<div class='status fail'>⚠️ ISSUES FOUND: This server may not support PHP Git Deploy</div>";
