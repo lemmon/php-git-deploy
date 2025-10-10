@@ -1,11 +1,11 @@
 # PHP Git Deploy
 
-A lightweight, self-hosted Git deployment system written in PHP. Deploy your code with webhooks or manual triggers - works with any web project.
+A lightweight, self-hosted Git deployment system written in PHP. Deploy your code via webhooks or manual triggers and keep any web project in sync.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-7.0%2B-blue.svg)](https://php.net)
 
-## 🚀 Features
+## Features
 
 - **GitHub webhook support** - Automatic deployments on push
 - **Manual deployment triggers** - Deploy via URL with token
@@ -15,7 +15,7 @@ A lightweight, self-hosted Git deployment system written in PHP. Deploy your cod
 - **Plain text logging** - Perfect for webhook logs and debugging
 - **No dependencies** - Pure PHP, works on shared hosting
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 your-website/
@@ -37,7 +37,7 @@ your-website/
         └── deploy.log
 ```
 
-## ⚡ Quick Start
+## Quick Start
 
 1. **Download** the latest release or clone this repository
 2. **Upload** the `_deploy/` folder to your web root
@@ -46,7 +46,7 @@ your-website/
 5. **Add public key** to your GitHub repository
 6. **Test deployment** by visiting the webhook URL
 
-## 🔧 Configuration
+## Configuration
 
 Edit `_deploy/config.php`:
 
@@ -79,7 +79,7 @@ return [
 ];
 ```
 
-## 🔗 Usage
+## Usage
 
 ### GitHub Webhook Setup
 1. Go to your repository **Settings → Webhooks → Add webhook**
@@ -100,28 +100,28 @@ For manual deployments or integration with systems that don't support GitHub's w
 
 > **Security Warning**: Anyone with this URL can trigger a deployment. Use a long, random token and only enable this feature if you understand the risks.
 
-## 🛠️ Tools
+## Tools
 
 - **`tools/system-check.php`** - Check server compatibility
 - **`tools/ssh-keygen.php`** - Generate SSH keys for GitHub
 - **`tools/setup-composer.php`** - Download and setup composer.phar
 - **`tools/find-php.php`** - Find correct PHP executable path
 
-## 📋 Requirements
+## Requirements
 
 - PHP 7.0+
 - Git (command line access)
 - SSH or HTTPS repository access
 - Web server with PHP support
 
-## 🔒 Security
+## Security
 
 - Token-based authentication
 - SSH key support for private repositories
 - No credentials stored in web-accessible files
 - Configurable deployment directory
 
-## 🌟 Why PHP Git Deploy?
+## Why PHP Git Deploy?
 
 - **Lightweight** - No complex setup or dependencies
 - **Shared hosting friendly** - Works on basic PHP hosting
@@ -129,19 +129,19 @@ For manual deployments or integration with systems that don't support GitHub's w
 - **GitHub integrated** - Perfect webhook support
 - **Developer friendly** - Clean logs and error messages
 
-## 📖 Documentation
+## Documentation
 
 See individual tool files for detailed usage instructions.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👨‍💻 Author
+## Author
 
 Created by **Jakub Pelák**
 
@@ -150,4 +150,4 @@ Created by **Jakub Pelák**
 
 ---
 
-*Deploy your code with confidence! 🚀*
+Deploy your code with confidence.

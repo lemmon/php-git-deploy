@@ -1,207 +1,85 @@
-# PHP Git Deploy - Technical Documentation
+# PHP Git Deploy – Technical Documentation
 
-## Project Overview
+This document explains the moving parts of PHP Git Deploy so contributors can extend or troubleshoot the system with confidence.
 
-**PHP Git Deploy** is a lightweight, self-hosted Git deployment system written in PHP. It enables automatic deployment of Git repositories via GitHub webhooks with minimal server requirements.
+## Architecture Overview
+- **`_deploy/webhook.php`**: Receives GitHub events, validates signatures, and drives deployments.
+- **`_deploy/config.php`**: PHP array configuration that defines repository details, security settings, and post-deploy commands.
+- **`_deploy/tools/`**: Self-contained utilities for environment checks, SSH key generation, Composer setup, and PHP discovery.
+- Supporting directories (`keys/`, `logs/`) are created at runtime and excluded from version control.
 
-## Architecture
+Refer to `README.md` for the full directory tree used in production installs.
 
-### Core Components
+## Runtime Requirements
+- PHP 7.4+ with `exec`, `hash_hmac`, `hash_equals`, and JSON support enabled.
+- Git CLI accessible to the web server user.
+- File-system permissions that allow the deployment target, `keys/`, and `logs/` directories to be created and written.
 
-1. **Webhook Handler** (`_deploy/webhook.php`) - Main entry point for GitHub webhooks
-2. **Configuration** (`_deploy/config.php`) - PHP-based configuration file
-3. **Utility Tools** (`_deploy/tools/`) - Helper scripts for setup and maintenance
+## Request Processing Flow
+1. **Entry**: All requests terminate in `webhook.php`.
+2. **Authentication**:
+   - If a `token` query parameter is present and `allow_token_deployment` is true, the raw token is compared using `hash_equals`.
+   - Otherwise the handler expects GitHub webhook headers. `ping` events return immediately; only `push` events proceed.
+3. **Signature Validation**: Payloads are read from `php://input`, signed with HMAC-SHA256, and compared to `X-Hub-Signature-256`.
+4. **Dispatch**: After authentication, deployment is queued immediately; no background workers are used, so responses stream logs as the process runs.
 
-### File Structure
+## Deployment Pipeline
+1. **Preparation**: Calculate absolute paths from configuration values and confirm SSH key availability when configured.
+2. **Repository Sync**:
+   - If the target directory is empty, run `git clone -b <branch> <url> <target>`.
+   - Otherwise execute `git pull origin <branch>` inside the target.
+3. **Post Commands**: Iterate through `deployment.post_commands`, substituting `{DIR}` with the target directory. Each command is executed synchronously; on failure the handler logs the exit code and stops execution.
+4. **Logging**: Every step emits ISO 8601 timestamps to STDOUT and, if configured, to a log file.
 
-```
-webdeploy/
-├── _deploy/                    # Deployment system directory
-│   ├── webhook.php            # Main webhook handler
-│   ├── config.php             # Configuration file
-│   ├── README.md              # Quick setup guide
-│   └── tools/                 # Utility tools
-│       ├── system-check.php   # Server compatibility check
-│       ├── ssh-keygen.php     # SSH key generator
-│       ├── setup-composer.php # Composer installer
-│       ├── find-php.php       # PHP executable finder
-│       └── README.md          # Tools documentation
-├── README.md                  # Main project documentation
-├── ROADMAP.md                 # Development roadmap
-├── LICENSE                    # MIT License
-└── .editorconfig             # Editor configuration
-```
-
-## Technical Specifications
-
-### Requirements
-
-- **PHP**: 7.4+ (uses `hash_equals()`, array syntax)
-- **Git**: Any recent version
-- **Web Server**: Apache, Nginx, or any PHP-capable server
-- **Functions**: `exec()`, `file_get_contents()`, `hash_hmac()`
-
-### Security Model
-
-#### Webhook Authentication
-- **HMAC-SHA256 signature validation** using GitHub's `X-Hub-Signature-256` header
-- **Timing-safe comparison** via `hash_equals()` to prevent timing attacks
-- **Event filtering** - only processes `push` events, handles `ping` events
-
-#### Configuration Security
-- **PHP-based config** - not readable via HTTP (returns PHP code)
-- **No plain-text secrets** in web-accessible locations
-- **SSH key authentication** for private repositories
-
-### Event Handling
-
-#### Supported GitHub Events
-- **`push`**: Triggers deployment with full signature validation
-- **`ping`**: Returns "pong" without signature validation (webhook testing)
-- **Other events**: Gracefully ignored with HTTP 200 response
-
-#### HTTP Response Codes
-- **200**: Successful deployment or handled event
-- **400**: Missing required headers or payload
-- **403**: Invalid signature
-- **500**: Configuration or system errors
-
-### Deployment Process
-
-#### Initial Clone
-1. Check if target directory exists and is empty
-2. If empty: `git clone -b {branch} {repo} {target}`
-3. If not empty: `git init` + `git remote add` + `git pull`
-
-#### Incremental Updates
-1. Execute `git pull origin {branch}` in target directory
-2. Handle SSH authentication if configured
-3. Run post-deployment commands
-
-#### Path Resolution
-- **Relative to absolute conversion** for SSH keys and target directories
-- **Parent directory support** (`..`) for deploying from subdirectory to parent
-- **Script directory detection** via `__DIR__`
-
-### Configuration Schema
-
+## Configuration Reference
 ```php
-[
+return [
     'repository' => [
-        'url' => 'string',      // Git repository URL (SSH or HTTPS)
-        'branch' => 'string',   // Target branch (default: 'main')
+        'url' => 'git@github.com:username/repo.git',
+        'branch' => 'main',
     ],
     'deployment' => [
-        'target_directory' => 'string',  // Deployment target (relative or absolute)
-        'post_commands' => [             // Commands to run after deployment
-            'string', // Command with {DIR} placeholder support
+        'target_directory' => '..',
+        'post_commands' => [
+            __DIR__ . '/composer.phar install --no-dev',
         ],
     ],
     'ssh' => [
-        'key_path' => 'string', // Path to SSH private key (empty = disabled)
+        'key_path' => './keys/deploy_key',
     ],
     'security' => [
-        'deploy_token' => 'string',      // Webhook secret or manual deployment token
-        'allow_token_deployment' => 'bool', // Opt-in for manual deployment (default: false)
+        'deploy_token' => 'secret',
+        'allow_token_deployment' => false,
     ],
     'logging' => [
-        'log_file' => 'string', // Log file path (empty = disabled)
+        'log_file' => './logs/deploy.log',
     ],
-]
+];
 ```
 
-### Logging System
+- Relative paths are resolved from the `_deploy/` directory.
+- Empty strings disable optional features (for example, omitting `log_file` turns off file logging).
+- Commands should use absolute binaries or rely on placeholders to avoid PATH ambiguity.
 
-#### Log Format
-- **ISO 8601 timestamps** (`date('c')`) with timezone information
-- **Structured format**: `[timestamp] message`
-- **Dual output**: Console (for webhook response) + file (if configured)
+## Logging
+- Format: `[ISO-8601 timestamp] message`.
+- Destination: always streamed to the HTTP response; optionally appended to `logging.log_file`.
+- Prefixes: command output is logged with `> `, errors use `ERROR:` to simplify grepping.
 
-#### Log Levels
-- **INFO**: Normal operation messages
-- **WARNING**: Non-fatal issues (failed post-commands)
-- **ERROR**: Fatal errors requiring intervention
-- **SUCCESS**: Successful completion messages
+## SSH Key Handling
+- When `ssh.key_path` is set, the handler exports `GIT_SSH_COMMAND` with `-i <key>` and `StrictHostKeyChecking=no`.
+- The path is canonicalised before use; missing keys abort deployment with a clear log message.
+- Keys are expected inside `_deploy/keys/` with filesystem permissions managed by the operator.
 
-### Command Execution
+## Error Handling and Diagnostics
+- Missing configuration or unset secrets return HTTP 500 with explanatory logs.
+- Signature mismatches yield HTTP 403 responses.
+- Git command failures bubble up with captured stdout/stderr to assist debugging.
+- All exceptions fall back to a generic error message plus stack context written to the log stream.
 
-#### Security Features
-- **Working directory isolation** - commands run in target directory
-- **Output capture** - all command output logged with `> ` prefix
-- **Exit code checking** - non-zero exits trigger error handling
-- **Shell escaping** - relies on proper command construction
+## Extension Points
+- **Event handling**: The current switch statement can be extended to handle additional GitHub events (e.g., `release`).
+- **Post-processing**: Additional hooks can be inserted after git operations to support cache invalidation or notifications.
+- **Tooling**: `tools/` is intentionally decoupled, making it easy to add environment scripts without touching the handler.
 
-#### Placeholder System
-- **`{DIR}`**: Replaced with absolute target directory path
-- **Direct PHP evaluation**: Uses `__DIR__` in config for script directory
-
-### SSH Key Management
-
-#### Key Path Resolution
-- **Relative paths** converted to absolute using script directory
-- **File existence validation** before Git operations
-- **Permission checking** (logs current permissions)
-
-#### Git SSH Configuration
-- **`GIT_SSH_COMMAND`** environment variable for SSH options
-- **StrictHostKeyChecking=no** for automated deployment
-- **Per-operation SSH key specification**
-
-## Error Handling
-
-### Common Error Scenarios
-1. **Missing configuration** - HTTP 500, clear error message
-2. **Invalid webhook signature** - HTTP 403, security log entry
-3. **Git operation failures** - Logged with full command output
-4. **SSH key issues** - Path resolution and permission diagnostics
-5. **Post-command failures** - Warnings, continue with remaining commands
-
-### Diagnostic Information
-- **Script directory** and **target directory** paths
-- **SSH key** existence and permissions
-- **Git repository** status and remote configuration
-- **Command execution** with full output capture
-
-## Performance Characteristics
-
-### Resource Usage
-- **Memory**: Minimal - no large data structures
-- **CPU**: Low - mostly I/O bound operations
-- **Disk**: Log files grow over time (rotation recommended)
-- **Network**: Depends on repository size and frequency
-
-### Scalability
-- **Single-threaded** - one deployment at a time
-- **File locking** on log writes for concurrent webhook safety
-- **Stateless** - no persistent connections or sessions
-
-## Integration Points
-
-### GitHub Webhook Configuration
-- **Payload URL**: `https://domain.com/_deploy/webhook.php`
-- **Content Type**: `application/json` or `application/x-www-form-urlencoded`
-- **Secret**: Must match `deploy_token` in configuration
-- **Events**: Select "Just the push event" or "Send me everything"
-
-### Server Configuration
-- **Document root**: Can be anywhere PHP can execute
-- **File permissions**: Write access for target directory and logs
-- **PHP execution**: CLI access for post-deployment commands
-- **Git access**: SSH key or HTTPS authentication
-
-## Development Notes
-
-### Code Style
-- **PSR-compatible** PHP formatting (4-space indentation)
-- **Minimal dependencies** - uses only PHP standard library
-- **Error-first design** - explicit error handling throughout
-- **Logging-centric** - all operations logged for debugging
-
-### Extension Points
-- **Post-deployment commands** - flexible command execution system
-- **Event handling** - easily extensible for additional GitHub events
-- **Configuration format** - PHP arrays allow complex structures
-- **Tool ecosystem** - modular utility scripts in `tools/` directory
-
-This documentation provides comprehensive technical details for understanding, maintaining, and extending the PHP Git Deploy system.
-tion provides comprehensive technical details for understanding, maintaining, and extending the PHP Git Deploy system.
+This document should give maintainers enough context to evolve PHP Git Deploy, audit security behaviour, and troubleshoot deployments quickly.

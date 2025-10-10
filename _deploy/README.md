@@ -2,7 +2,7 @@
 
 This directory contains the PHP Git Deploy system files.
 
-## 📁 Structure
+## Structure
 
 ```
 _deploy/
@@ -14,7 +14,7 @@ _deploy/
 └── logs/               # Deployment logs (auto-created)
 ```
 
-## ⚡ Quick Setup
+## Quick Setup
 
 1. **Configure repository** in `config.php`
 2. **Set secure token** in `config.php`
@@ -22,7 +22,7 @@ _deploy/
 4. **Generate SSH keys** using `tools/ssh-keygen.php`
 5. **Add public key** to your GitHub repository
 
-## 🔗 GitHub Webhook Setup
+## GitHub Webhook Setup
 
 **Webhook URL**: `https://yoursite.com/_deploy/webhook.php`
 
@@ -34,18 +34,18 @@ Configure in GitHub:
 
 > **Note**: Manual URL access is disabled for security. Only GitHub webhooks with proper signature validation are supported.
 
-## 🛠️ Tools
+## Tools
 
 - `tools/system-check.php` - Check server compatibility
 - `tools/ssh-keygen.php` - Generate SSH keys
 - `tools/setup-composer.php` - Setup composer.phar
 - `tools/find-php.php` - Find PHP executable
 
-## 📋 Configuration
+## Configuration
 
 Edit `config.php` to match your repository and requirements.
 
-## 🔒 Security
+## Security
 
 - Keep your `deploy_token` secret
 - SSH keys in `keys/` directory are ignored by git
