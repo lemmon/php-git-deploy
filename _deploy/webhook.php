@@ -77,6 +77,22 @@ function executeCommand($command, $workingDir = null) {
     return true;
 }
 
+function updateGitSubmodules($targetDir, $sshKeyPath) {
+    $submoduleCommand = 'git submodule update --init --recursive';
+
+    if (!empty($sshKeyPath)) {
+        $sshCommand = "ssh -i {$sshKeyPath} -o StrictHostKeyChecking=no";
+        $submoduleCommand = "GIT_SSH_COMMAND='{$sshCommand}' {$submoduleCommand}";
+    }
+
+    if (!executeCommand($submoduleCommand, $targetDir)) {
+        return false;
+    }
+
+    logMessage("Git submodules updated");
+    return true;
+}
+
 // Get configuration values
 $repoUrl = $config['repository']['url'] ?? '';
 $branch = $config['repository']['branch'] ?? 'main';
@@ -213,7 +229,7 @@ if ($isInitialClone) {
         // Directory is empty, use git clone
         logMessage("Directory is empty, using git clone");
 
-        $gitCommand = "git clone -b {$branch}";
+        $gitCommand = "git clone --recurse-submodules -b {$branch}";
 
         if (!empty($sshKeyPath)) {
             $sshCommand = "ssh -i {$sshKeyPath} -o StrictHostKeyChecking=no";
@@ -225,6 +241,12 @@ if ($isInitialClone) {
         if (!executeCommand($gitCommand)) {
             http_response_code(500);
             logMessage("ERROR: Git clone failed");
+            exit(1);
+        }
+
+        if (!updateGitSubmodules($targetDir, $sshKeyPath)) {
+            http_response_code(500);
+            logMessage("ERROR: Git submodule update failed");
             exit(1);
         }
     } else {
@@ -257,6 +279,12 @@ if ($isInitialClone) {
             logMessage("ERROR: Initial git pull failed");
             exit(1);
         }
+
+        if (!updateGitSubmodules($targetDir, $sshKeyPath)) {
+            http_response_code(500);
+            logMessage("ERROR: Git submodule update failed");
+            exit(1);
+        }
     }
 
     logMessage("Initial setup completed");
@@ -273,6 +301,12 @@ if ($isInitialClone) {
     if (!executeCommand($gitCommand, $targetDir)) {
         http_response_code(500);
         logMessage("ERROR: Git pull failed");
+        exit(1);
+    }
+
+    if (!updateGitSubmodules($targetDir, $sshKeyPath)) {
+        http_response_code(500);
+        logMessage("ERROR: Git submodule update failed");
         exit(1);
     }
 

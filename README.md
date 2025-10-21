@@ -11,6 +11,7 @@ A lightweight, self-hosted Git deployment system written in PHP. Deploy your cod
 - **Manual deployment triggers** - Deploy via URL with token
 - **SSH key authentication** - Secure private repository access
 - **Incremental updates** - Smart git pull for existing repositories
+- **Submodule aware** - Recursively clones and updates git submodules
 - **Configurable commands** - Run composer, artisan, or any post-deploy scripts
 - **Plain text logging** - Perfect for webhook logs and debugging
 - **No dependencies** - Pure PHP, works on shared hosting

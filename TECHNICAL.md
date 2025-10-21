@@ -26,8 +26,9 @@ Refer to `README.md` for the full directory tree used in production installs.
 ## Deployment Pipeline
 1. **Preparation**: Calculate absolute paths from configuration values and confirm SSH key availability when configured.
 2. **Repository Sync**:
-   - If the target directory is empty, run `git clone -b <branch> <url> <target>`.
+   - If the target directory is empty, run `git clone --recurse-submodules -b <branch> <url> <target>`.
    - Otherwise execute `git pull origin <branch>` inside the target.
+   - In both cases, finish with `git submodule update --init --recursive` so nested repositories stay current.
 3. **Post Commands**: Iterate through `deployment.post_commands`, substituting `{DIR}` with the target directory. Each command is executed synchronously; on failure the handler logs the exit code and stops execution.
 4. **Logging**: Every step emits ISO 8601 timestamps to STDOUT and, if configured, to a log file.
 

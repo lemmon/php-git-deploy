@@ -10,6 +10,7 @@ Focused view of what is done and what comes next for PHP Git Deploy.
 - ✅ Configurable post-deploy commands
 - ✅ Comprehensive toolset
 - ✅ Clean documentation
+- ✅ Git submodule support for recursive clone/pull during deployments
 
 ## Next Target
-- [ ] Git submodule support for recursive clone/pull during deployments
+- _TBD_
